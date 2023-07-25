@@ -1,6 +1,6 @@
-import { EnumFieldType } from "../../EnumFieldType";
+import { EnumFieldType } from "../../EnumFieldType.js";
 
-import { Field } from "./Field";
+import { Field } from "./Field.jsx";
 
 export function Group({ field }) {
 	if(field.type !== EnumFieldType.GROUP) {
