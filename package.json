@@ -3,7 +3,7 @@
 	"name": "@lespantsfancy/chord",
 	"version": "0.1.19",
 	"description": "",
-	"main": "dist/bundle.js",
+	"main": "dist/main.js",
 	"scripts": {
 		"build": "rollup -c",
 		"build-publish": "npm version patch && npm run build && npm publish",
