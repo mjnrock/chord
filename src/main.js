@@ -1,4 +1,2 @@
-import Form from "./@form/package.js";
-import Node from "./@node/package.js";
-
-export { Form, Node };
+export { default as Form } from "./@form/package.js";
+export { default as Node } from "./@node/package.js";
