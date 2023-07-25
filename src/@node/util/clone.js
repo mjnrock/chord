@@ -1,5 +1,4 @@
 import { isClassInstance } from "./copy.js";
-import { v4 as uuidv4 } from 'uuid';
 
 export function clone(obj) {
 	if(obj === null) return null;

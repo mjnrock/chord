@@ -1,7 +1,7 @@
 const path = require("path");
 
 module.exports = {
-	entry: "./main.js",  // Replace with the correct entry point for your project
+	entry: "./src/main.js",
 	module: {
 		rules: [
 			{

@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { Tags } from "./util/Tags";
+import { Tags } from "./util/Tags.js";
 
 /*
 * @Schema = {

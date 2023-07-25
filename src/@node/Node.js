@@ -1,5 +1,5 @@
-import { clone } from "./util/clone";
-import { IdentityClass } from "./Identity";
+import { clone } from "./util/clone.js";
+import { IdentityClass } from "./Identity.js";
 
 function safeStringify(obj) {
 	const cache = new Set();

@@ -1,6 +1,6 @@
-import { EnumFieldType } from "../../EnumFieldType";
+import { EnumFieldType } from "../../EnumFieldType.js";
 
-import { FieldInput } from "./fields/FieldInput";
+import { FieldInput } from "./fields/FieldInput.jsx";
 
 export const EnumFieldComponent = {
 	[ EnumFieldType.ANY ]: FieldInput,
