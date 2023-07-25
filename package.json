@@ -3,9 +3,9 @@
 	"name": "@lespantsfancy/chord",
 	"version": "0.1.18",
 	"description": "",
-	"main": "dist/main.js",
+	"main": "dist/bundle.js",
 	"scripts": {
-		"build": "babel src --out-dir dist --copy-files",
+		"build": "rollup -c",
 		"build-publish": "npm version patch && npm run build && npm publish",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
@@ -15,10 +15,12 @@
 		"uuid": "^9.0.0"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.22.9",
 		"@babel/core": "^7.22.9",
-		"@babel/plugin-transform-modules-commonjs": "^7.22.5",
 		"@babel/preset-env": "^7.22.9",
-		"@babel/preset-react": "^7.22.5"
+		"@babel/preset-react": "^7.22.5",
+		"@rollup/plugin-commonjs": "^25.0.3",
+		"@rollup/plugin-node-resolve": "^15.1.0",
+		"rollup": "^2.79.1",
+		"rollup-plugin-babel": "^4.4.0"
 	}
 }
