@@ -8,6 +8,7 @@ export default {
 		file: "dist/main.js",
 		format: "esm", // Use "esm" to output ES modules that are compatible with browser and latest Node.js versions
 	},
+    external: [ "react", "react-dom" ], // add this line
 	plugins: [
 		babel({
 			exclude: "node_modules/**",
