@@ -5,10 +5,6 @@ module.exports = {
 	output: {
 		path: path.resolve(__dirname, "dist"),
 		filename: "main.js",
-		library: "@lespantsfancy/chord",
-		libraryTarget: "module",
-		globalObject: "this",
-		umdNamedDefine: true,
 	},
 	experiments: {
 		outputModule: true,
