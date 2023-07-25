@@ -10,6 +10,9 @@ module.exports = {
 		globalObject: "this",
 		umdNamedDefine: true,
 	},
+	experiments: {
+		outputModule: true,
+	},
 	module: {
 		rules: [
 			{
