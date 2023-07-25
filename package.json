@@ -6,6 +6,7 @@
 	"main": "dist/main.js",
 	"scripts": {
 		"build": "webpack --mode production",
+		"build-publish": "npm version patch && npm run build && npm publish",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "Matt Nawrocki",

@@ -5,7 +5,7 @@ import { useForm } from "./react/useForm.js";
 import { EnumFieldComponent } from "./react/components/EnumFieldComponent.js";
 import { Field } from "./react/components/Field.jsx";
 import { Group } from "./react/components/Group.jsx";
-import { InputField } from "./react/components/fields/FieldInput.jsx";
+import { FieldInput } from "./react/components/fields/FieldInput.jsx";
 
 export default {
 	EnumFieldType,
