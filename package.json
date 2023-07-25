@@ -1,14 +1,14 @@
 {
 	"type": "module",
 	"name": "@lespantsfancy/chord",
-	"version": "0.1.16",
+	"version": "0.1.17",
 	"description": "",
 	"main": "dist/main.js",
 	"scripts": {
 		"build": "babel src --out-dir dist --copy-files",
 		"build-publish": "npm version patch && npm run build && npm publish",
 		"test": "echo \"Error: no test specified\" && exit 1"
-	},	
+	},
 	"author": "Matt Nawrocki",
 	"dependencies": {
 		"react": "^18.2.0",
