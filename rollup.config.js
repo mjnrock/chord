@@ -6,7 +6,7 @@ export default {
 	input: "src/main.js",
 	output: {
 		file: "dist/main.js",
-		format: "cjs", // Use "esm" if you want ES6 (ESM) format
+		format: "esm", // Use "esm" to output ES modules that are compatible with browser and latest Node.js versions
 	},
 	plugins: [
 		babel({
