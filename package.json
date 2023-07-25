@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@lespantsfancy/chord",
-	"version": "0.1.18",
+	"version": "0.1.19",
 	"description": "",
 	"main": "dist/bundle.js",
 	"scripts": {
