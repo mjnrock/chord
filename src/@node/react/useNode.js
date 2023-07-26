@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Node from "../Node";
 
-export function useNode(node, reducerMap) {
+export function useNode(node) {
 	const [ state, setState ] = useState(node.state);
 	const dispatch = (msg) => {
 		node.dispatch(msg.type, msg.data);

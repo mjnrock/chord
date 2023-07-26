@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
-import Node from "./Node";
+import Node from "../Node";
 
-import Registry from "./Registry";
+import Registry from "../Registry";
 
 export class MasterNode extends Node {
 	constructor ({ state = {}, events = {}, reducers = {}, effects = {}, registry, id, tags = [], ...rest } = {}) {
