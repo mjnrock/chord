@@ -111,7 +111,8 @@ export const Registry = {
 		return true;
 	},
 
-	addAlias(registry, id, ...aliases) {
+	addAlias(registry, pathOrId, ...aliases) {
+		let id = pathOrId.startsWith("$") ? Resolver.getIdByPath(registry, pathOrId) : pathOrId;
 		if(!(id in registry)) {
 			return false;
 		}
@@ -126,7 +127,8 @@ export const Registry = {
 
 		return true;
 	},
-	removeAlias(registry, id, ...aliases) {
+	removeAlias(registry, pathOrId, ...aliases) {
+		let id = pathOrId.startsWith("$") ? Resolver.getIdByPath(registry, pathOrId) : pathOrId;
 		if(!(id in registry)) {
 			return false;
 		}
@@ -138,11 +140,28 @@ export const Registry = {
 		return true;
 	},
 
-	addPool(registry, name, ...ids) {
-		registry[ name ] = RegistryEntry.New({
-			type: EnumEntryType.POOL,
-			value: ids,
-		});
+	addPool(registry, pathOrName, ...ids) {
+		// Check if the path starts with a $
+		if(pathOrName.startsWith("$")) {
+			// Extract the root path and alias from the path
+			let keys = pathOrName.split(".");
+			let alias = keys.pop();
+
+			// Resolve the root path to find the parent registry
+			let parentRegistry = Resolver.getValueByPath(registry, keys.join("."));
+
+			// Create a new pool in the parent registry with the given alias and ids
+			parentRegistry[ alias ] = RegistryEntry.New({
+				type: EnumEntryType.POOL,
+				value: ids.map(id => id.startsWith("$") ? Resolver.getIdByPath(registry, id) : id),
+			});
+		} else {
+			// If the path does not start with a $, add the pool to the root registry
+			registry[ pathOrName ] = RegistryEntry.New({
+				type: EnumEntryType.POOL,
+				value: ids,
+			});
+		}
 	},
 	removePool(registry, name) {
 		delete registry[ name ];
@@ -151,14 +170,26 @@ export const Registry = {
 		registry[ name ].value = [];
 	},
 
-	addToPool(registry, name, ...ids) {
-		if(!(name in registry)) {
-			return false;
+	addToPool(registry, pathOrName, ...ids) {
+		// Check if the path starts with a $
+		if(pathOrName.startsWith("$")) {
+			// Extract the root path and alias from the path
+			let keys = pathOrName.split(".");
+			let alias = keys.pop();
+
+			// Resolve the root path to find the parent registry
+			let parentRegistry = Resolver.getValueByPath(registry, keys.join("."));
+
+			// Add the ids to the pool in the parent registry
+			if(alias in parentRegistry) {
+				parentRegistry[ alias ].value.push(...ids.map(id => id.startsWith("$") ? Resolver.getIdByPath(registry, id) : id));
+			}
+		} else {
+			// If the path does not start with a $, add the ids to the pool in the root registry
+			if(pathOrName in registry) {
+				registry[ pathOrName ].value.push(...ids);
+			}
 		}
-
-		registry[ name ].value.push(...ids);
-
-		return true;
 	},
 	removeFromPool(registry, name, ...ids) {
 		if(!(name in registry)) {
@@ -357,7 +388,7 @@ export const Resolver = {
 				}
 			} else {
 				// If the current key points to a value, return its ID.
-				return nextItem.$id;
+				return nextItem.value;
 			}
 		}
 

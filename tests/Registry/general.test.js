@@ -12,6 +12,14 @@ Registry.setNamespace(registry, "ns1", {
 	"ns1Entry": "Hello from ns1",
 });
 
+// Currently how to do it
+Registry.addPool(Resolver.getValueByPath(registry, "$.ns1"), "ns1Pool");
+Registry.addToPool(Resolver.getValueByPath(registry, "$.ns1"), "ns1Pool", Resolver.getIdByPath(registry, "$.ns1.ns1Entry"));
+
+// Ideal case
+// Registry.addPool(registry, "$.ns1.ns1Pool");
+// Registry.addToPool(registry, "$.ns1.ns1Pool", "$.ns1.ns1Entry");
+
 Registry.setNamespace(registry, "$.ns1.ns2", {
 	"ns2Entry": "Hello from ns2",
 });
