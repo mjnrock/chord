@@ -173,7 +173,7 @@ export class Tags extends Map {
 export class Evaluator {
 	constructor (tags, expression) {
 		this.tags = tags;
-		this.expression = Array.isArray(expression) ? Expression.parse(expression) : expression;
+		this.expression = expression instanceof Expression ? expression : Expression.parse(expression);
 	}
 
 	isPojo(obj) {
