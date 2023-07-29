@@ -19,6 +19,8 @@ import Identity from "./Identity.js";
 * };
 */
 
+//TODO: The "pathing" paradigm is only partially implemented, mainly in the priority methods; continue implementing it throughout the rest of the library.
+
 const isNamespace = (registry, key) => {
 	const entry = registry[ key ];
 
