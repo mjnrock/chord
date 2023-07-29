@@ -170,4 +170,141 @@ export class Tags extends Map {
 	}
 };
 
+export class Evaluator {
+	constructor (tags, expression) {
+		this.tags = tags;
+		this.expression = Array.isArray(expression) ? Expression.parse(expression) : expression;
+	}
+
+	isPojo(obj) {
+		if(obj === null || typeof obj !== "object") {
+			return false;
+		}
+		return Object.getPrototypeOf(obj) === Object.prototype;
+	}
+
+	isClassInstance(obj) {
+		if(typeof obj !== "object") {
+			return false;
+		}
+		return obj.constructor.name !== "Object";
+	}
+
+	evaluate() {
+		switch(this.expression.operation) {
+			/* Comparators */
+			case "EQ":
+				return this.tags.get(this.expression.tag) === this.expression.value;
+			case "LT":
+				return this.tags.get(this.expression.tag) < this.expression.value;
+			case "LTE":
+				return this.tags.get(this.expression.tag) <= this.expression.value;
+			case "GT":
+				return this.tags.get(this.expression.tag) > this.expression.value;
+			case "GTE":
+				return this.tags.get(this.expression.tag) >= this.expression.value;
+			case "IN":
+				return this.tags.get(this.expression.tag).includes(this.expression.value);
+			case "REGEX":
+				return new RegExp(this.expression.value).test(this.tags.get(this.expression.tag));
+			case "FN":
+				return this.tags.get(this.expression.tag)(this.expression.value);
+
+			/* Logical */
+			case "T":
+				return Boolean(this.tags.get(this.expression.tag));
+			case "F":
+				return !Boolean(this.tags.get(this.expression.tag));
+			case "AND":
+				return this.expression.tag.every(operand => new Evaluator(this.tags, operand).evaluate());
+			case "OR":
+				return this.expression.tag.some(operand => new Evaluator(this.tags, operand).evaluate());
+			case "NOT":
+				return !(new Evaluator(this.tags, this.expression.tag).evaluate());
+
+			/* Type */
+			case "IsNumber":
+				return typeof this.tags.get(this.expression.tag) === "number";
+			case "IsString":
+				return typeof this.tags.get(this.expression.tag) === "string";
+			case "IsBoolean":
+				return typeof this.tags.get(this.expression.tag) === "boolean";
+			case "IsSymbol":
+				return typeof this.tags.get(this.expression.tag) === "symbol";
+			case "IsBigInt":
+				return typeof this.tags.get(this.expression.tag) === "bigint";
+			case "IsFunction":
+				return typeof this.tags.get(this.expression.tag) === "function";
+			case "IsObject":
+				return typeof this.tags.get(this.expression.tag) === "object";
+			case "IsArray":
+				return Array.isArray(this.tags.get(this.expression.tag));
+			case "IsUndefined":
+				return typeof this.tags.get(this.expression.tag) === "undefined";
+			case "IsNull":
+				return this.tags.get(this.expression.tag) === null;
+			case "IsNaN":
+				return Number.isNaN(this.tags.get(this.expression.tag));
+			case "IsPOJO":
+				return this.isPojo(this.tags.get(this.expression.tag));
+			case "IsClassInstance":
+				return this.isClassInstance(this.tags.get(this.expression.tag));
+
+			default:
+				throw new Error("Unsupported operation: " + this.expression.operation);
+		}
+	}
+};
+
+export class Expression {
+	constructor (operation, tag, value) {
+		this.operation = operation;
+		this.tag = tag;
+		this.value = value;
+	}
+
+	static parse(inputArray) {
+		const operation = inputArray[ 0 ];
+		const tag = inputArray[ 1 ];
+
+		switch(operation) {
+			case "AND":
+			case "OR":
+				const operands = inputArray[ 1 ].map(Expression.parse);
+				return new Expression(operation, operands);
+			case "NOT":
+				const operand = Expression.parse(inputArray[ 1 ]);
+				return new Expression(operation, operand);
+			case "EQ":
+			case "LT":
+			case "LTE":
+			case "GT":
+			case "GTE":
+			case "IN":
+			case "REGEX":
+			case "FN":
+			case "T":
+			case "F":
+				const value = inputArray[ 2 ];
+				return new Expression(operation, tag, value);
+			case "IsNumber":
+			case "IsString":
+			case "IsBoolean":
+			case "IsSymbol":
+			case "IsBigInt":
+			case "IsFunction":
+			case "IsObject":
+			case "IsArray":
+			case "IsUndefined":
+			case "IsNull":
+			case "IsNaN":
+			case "IsPOJO":
+			case "IsClassInstance":
+				return new Expression(operation, tag);
+			default:
+				throw new Error(`Unsupported operation: ${ operation }`);
+		}
+	}
+};
+
 export default Tags;
