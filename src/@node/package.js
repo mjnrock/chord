@@ -1,4 +1,4 @@
-import { IdentityClass } from "./Identity.js";
+import { Identity, IdentityClass } from "./Identity.js";
 import { Node } from "./Node.js";
 import Registry from "./Registry.js";
 
@@ -10,7 +10,8 @@ import { Tags } from "./util/Tags.js";
 import { Serialize } from "./util/Serialize.js";
 
 export default {
-	Identity: IdentityClass,
+	Identity,
+	IdentityClass,
 	Node,
 	Registry,
 
