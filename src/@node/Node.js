@@ -1,6 +1,9 @@
-import { clone } from "./util/clone.js";
 import { IdentityClass } from "./Identity.js";
+import { clone } from "./util/clone.js";
 
+/**
+ * Use with caution, this is a ludicrously expensive operation
+ */
 function safeStringify(obj) {
 	const cache = new Set();
 
@@ -16,16 +19,40 @@ function safeStringify(obj) {
 
 	return JSON.stringify(obj, replacer);
 };
+function deepEqual(obj1, obj2, seen = new WeakMap()) {
+	if(Object.is(obj1, obj2)) {
+		return true;
+	}
 
-/**
- * The Node is a convenience concept wrapper that can be thought of as a "state slice".  As such,
- * the Node can have `reducers` that are functions that are called when a *specific* action is
- * dispatched.  The result of the reducer(s) will become the next state of the Node.
- * As such, there can only be one handler per action.  For the "on state change" event, you can
- * use the `Node.EventTypes.UPDATE` event.  All `events` and `effects`, by contrast, can have multiple handlers,
- * and expect an array of functions, which if they return anything, will be returned in the result
- * array at its execution index in that same array. (e.g. if it's the 3rd function, i = 2).
- */
+	if(typeof obj1 !== "object" || obj1 === null ||
+		typeof obj2 !== "object" || obj2 === null) {
+		return false;
+	}
+
+	if(seen.has(obj1) || seen.has(obj2)) {
+		return false; // Circular reference found
+	}
+
+	seen.set(obj1, true);
+	seen.set(obj2, true);
+
+	const keys1 = Object.keys(obj1);
+	const keys2 = Object.keys(obj2);
+
+	if(keys1.length !== keys2.length) {
+		return false;
+	}
+
+	for(const key of keys1) {
+		if(!keys2.includes(key) || !deepEqual(obj1[ key ], obj2[ key ], seen)) {
+			return false;
+		}
+	}
+
+	return true;
+};
+
+
 export class Node extends IdentityClass {
 	static MergeReducer = (current, next) => {
 		return {
@@ -43,7 +70,7 @@ export class Node extends IdentityClass {
 		UPDATE: "update",
 	};
 
-	constructor ({ state = {}, events = {}, reducers = {}, effects = {}, registry, id, tags = [], ...rest } = {}) {
+	constructor ({ state = {}, events = {}, reducers = {}, effects = {}, registry, id, tags = [], $init, $pre, $post, $run = false, config = {}, ...rest } = {}) {
 		super({ id, tags, ...rest });
 
 		this.state = state;
@@ -51,6 +78,12 @@ export class Node extends IdentityClass {
 			reducers,
 			effects: {},
 			...events,
+		};
+
+		this.config = {
+			allowShallowPrevious: false,
+			allowTrivialUpdate: false,	// If the state is the same as the previous state, still emit the `update` event
+			...config,
 		};
 
 		/**
@@ -63,20 +96,35 @@ export class Node extends IdentityClass {
 		for(const [ a, e ] of Object.entries(effects)) {
 			this.addEffect(a, ...(Array.isArray(e) ? e : [ e ]));
 		}
+
+
+		/* Strictly convenience arguments, since these are usually sort of important events */
+		if(typeof $pre === "function") {
+			this.addEventListeners(Node.EventTypes.PRE, $pre);
+		}
+		if(typeof $init === "function") {
+			this.addEventListeners(Node.EventTypes.INIT, $init);
+		}
+		if(typeof $post === "function") {
+			this.addEventListeners(Node.EventTypes.POST, $post);
+		}
+
+		/* A convenience argument to immediately invoke the initialization events, with optional arguments */
+		if($run) {
+			this.init.call(this, ...(Array.isArray($run) ? $run : []));
+		}
 	}
 
 	init(...args) {
-		this.emit(Node.EventTypes.PRE, ...args);
-		this.emit(Node.EventTypes.INIT, ...args);
-		this.emit(Node.EventTypes.POST, ...args);
+		this.emit(Node.EventTypes.PRE, this, ...args);
+		this.emit(Node.EventTypes.INIT, this, ...args);
+		this.emit(Node.EventTypes.POST, this, ...args);
 
 		return this;
 	}
 
-
-
 	dispatch(action, ...args) {
-		let previous = clone(this.state);
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
 		let state = this.state;
 
 		if(this.events.reducers[ action ]) {
@@ -86,7 +134,7 @@ export class Node extends IdentityClass {
 			state = this.events.reducers.default.call(this, state, ...args);
 		}
 
-		if(safeStringify(state) === safeStringify(previous)) {
+		if(!this.config.allowTrivialUpdate && deepEqual(state, previous)) {
 			return state;
 		}
 
@@ -103,14 +151,14 @@ export class Node extends IdentityClass {
 	}
 
 	async dispatchAsync(action, ...args) {
-		let previous = clone(this.state);
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
 		let state = this.state;
 
 		if(this.events.reducers[ action ]) {
 			state = await this.events.reducers[ action ].call(this, state, ...args);
 		}
 
-		if(safeStringify(state) === safeStringify(previous)) {
+		if(!this.config.allowTrivialUpdate && deepEqual(state, previous)) {
 			return state;
 		}
 

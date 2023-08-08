@@ -9,11 +9,18 @@ import { Tags } from "./util/Tags.js";
 */
 
 export class IdentityClass {
-	constructor({ id, tags = [], ...rest } = {}) {
+	constructor ({ id, tags = [], ...rest } = {}) {
 		this.$id = id || uuid();
 		this.$tags = Tags.ToObject(Tags.From(...tags));
 
-		Object.assign(this, rest);
+		// Bind `this` to any functions passed in.
+		for(const key in rest) {
+			if(typeof rest[ key ] === "function") {
+				this[ key ] = rest[ key ].bind(this);
+			} else {
+				this[ key ] = rest[ key ];
+			}
+		}
 
 		return this;
 	}
@@ -90,4 +97,7 @@ export const Identity = {
 	},
 };
 
-export default Identity;
+export default {
+	IdentityClass,
+	Identity,
+};
