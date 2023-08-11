@@ -9,6 +9,12 @@ export function useNode(node) {
 	const dispatchAsync = async (msg) => {
 		await node.dispatchAsync(msg.type, msg.data);
 	};
+	const emit = (msg) => {
+		node.emit(msg.type, msg.data);
+	};
+	const emitAsync = async (msg) => {
+		await node.emitAsync(msg.type, msg.data);
+	};
 
 	useEffect(() => {
 		const updateListener = (next) => {
@@ -25,8 +31,8 @@ export function useNode(node) {
 		state,
 		dispatch,
 		dispatchAsync,
-		emit: node.emit.bind(node),
-		emitAsync: node.emitAsync.bind(node),
+		emit,
+		emitAsync,
 	};
 };
 
