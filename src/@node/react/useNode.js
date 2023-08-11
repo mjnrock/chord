@@ -25,6 +25,8 @@ export function useNode(node) {
 		state,
 		dispatch,
 		dispatchAsync,
+		emit: node.emit.bind(node),
+		emitAsync: node.emitAsync.bind(node),
 	};
 };
 
