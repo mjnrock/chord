@@ -3,11 +3,23 @@ import Node from "../Node";
 
 export function useNode(node) {
 	const [ state, setState ] = useState(node.state);
-	const dispatch = (msg) => {
-		node.dispatch(msg.type, msg.data);
+	const dispatch = (...args) => {
+		const [ msg ] = args;
+
+		if(typeof msg === "object") {
+			node.dispatch(msg.type, msg.data);
+		} else {
+			node.dispatch(...args);
+		}
 	};
 	const dispatchAsync = async (msg) => {
-		await node.dispatchAsync(msg.type, msg.data);
+		const [ msg ] = args;
+
+		if(typeof msg === "object") {
+			await node.dispatchAsync(msg.type, msg.data);
+		} else {
+			await node.dispatchAsync(...args);
+		}
 	};
 
 	useEffect(() => {

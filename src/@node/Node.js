@@ -3,6 +3,11 @@ import { clone } from "./util/clone.js";
 
 /**
  * Use with caution, this is a ludicrously expensive operation
+ * with deep nesting.  As such, it should really only be used
+ * in situations where you either know that the object is shallow,
+ * or you don't really care about the performance hit, as it's still
+ * easily efficient enough for most use-cases (but suffers irreparably
+ * in game-loop-like scenarios)
  */
 function safeStringify(obj) {
 	const cache = new Set();
@@ -121,6 +126,26 @@ export class Node extends IdentityClass {
 		this.emit(Node.EventTypes.POST, this, ...args);
 
 		return this;
+	}
+
+	next(next = {}, txs = [], ...args) {
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
+		let state = { ...this.state, ...next };
+
+		for(const tx of Array.isArray(txs) ? txs : [ txs ]) {
+			if(typeof tx === "function") {
+				state = tx(state, ...args);
+			}
+		}
+
+		if(!this.config.allowTrivialUpdate && deepEqual(state, previous)) {
+			return state;
+		}
+
+		this.state = { ...state };
+		this.emit(Node.EventTypes.UPDATE, state, previous, action);
+
+		return state;
 	}
 
 	dispatch(action, ...args) {
