@@ -6,18 +6,22 @@ export function useNode(node) {
 	const dispatch = (...args) => {
 		const [ msg ] = args;
 
+		/* Assume its an object-message, rather than an action-message */
 		if(typeof msg === "object") {
 			node.dispatch(msg.type, msg.data);
 		} else {
+			/* As an action name, assume it's a string */
 			node.dispatch(...args);
 		}
 	};
-	const dispatchAsync = async (msg) => {
+	const dispatchAsync = async (...args) => {
 		const [ msg ] = args;
 
+		/* Assume its an object-message, rather than an action-message */
 		if(typeof msg === "object") {
 			await node.dispatchAsync(msg.type, msg.data);
 		} else {
+			/* As an action name, assume it's a string */
 			await node.dispatchAsync(...args);
 		}
 	};
