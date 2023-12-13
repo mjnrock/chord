@@ -1,4 +1,5 @@
 /**
+ * @class Tags
  * The general idea of a "Tag" is a unique term, with optional properties.  As
  * such, a "tag" can be just a string, or it can be a string with property values.
  * 
@@ -93,8 +94,13 @@ export class Tags extends Map {
 	}
 
 	/**
+	 * Greeting component that displays a message.
+	 *
+	 * @param {Object} props
+	 * @param {string} props.name - The name of the person to greet.
 	 * 
-	 * @param  {...any} inputs 
+	 * @example
+	 * return <Greeting name="John" />
 	 */
 	add(...inputs) {
 		inputs.forEach(input => {
