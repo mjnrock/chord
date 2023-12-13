@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: @node/Node.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: @node/Node.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { IdentityClass } from "./Identity.js";
+import { clone } from "./util/clone.js";
+
+/**
+ * Use with caution, this is a ludicrously expensive operation
+ * with deep nesting.  As such, it should really only be used
+ * in situations where you either know that the object is shallow,
+ * or you don't really care about the performance hit, as it's still
+ * easily efficient enough for most use-cases (but suffers irreparably
+ * in game-loop-like scenarios)
+ */
+function safeStringify(obj) {
+	const cache = new Set();
+
+	function replacer(key, value) {
+		if(typeof value === "object" &amp;&amp; value !== null) {
+			if(cache.has(value)) {
+				return {}; // Replace circular reference with an empty object
+			}
+			cache.add(value);
+		}
+		return value;
+	}
+
+	return JSON.stringify(obj, replacer);
+};
+function deepEqual(obj1, obj2, seen = new WeakMap()) {
+	if(Object.is(obj1, obj2)) {
+		return true;
+	}
+
+	if(typeof obj1 !== "object" || obj1 === null ||
+		typeof obj2 !== "object" || obj2 === null) {
+		return false;
+	}
+
+	if(seen.has(obj1) || seen.has(obj2)) {
+		return false; // Circular reference found
+	}
+
+	seen.set(obj1, true);
+	seen.set(obj2, true);
+
+	const keys1 = Object.keys(obj1);
+	const keys2 = Object.keys(obj2);
+
+	if(keys1.length !== keys2.length) {
+		return false;
+	}
+
+	for(const key of keys1) {
+		if(!keys2.includes(key) || !deepEqual(obj1[ key ], obj2[ key ], seen)) {
+			return false;
+		}
+	}
+
+	return true;
+};
+
+
+export class Node extends IdentityClass {
+	static MergeReducer = (current, next) => {
+		return {
+			...current,
+			...next,
+		};
+	};
+	static UpdateReducer = (current, next) => next;
+	static LogEffect = (self, state) => console.warn(`[@${ self.$id }]:`, state);
+
+	static EventTypes = {
+		PRE: "pre",
+		INIT: "init",
+		POST: "post",
+		UPDATE: "update",
+	};
+
+	constructor ({ state = {}, events = {}, reducers = {}, effects = {}, registry, id, tags = [], $init, $pre, $post, $run = false, config = {}, ...rest } = {}) {
+		super({ id, tags, ...rest });
+
+		this.state = state;
+		this.events = {
+			reducers,
+			effects: {},
+			...events,
+		};
+
+		this.config = {
+			allowShallowPrevious: false,
+			allowTrivialUpdate: false,	// If the state is the same as the previous state, still emit the `update` event
+			...config,
+		};
+
+		/**
+		 * This can be a bit confusing, but `effects` are functions that are called
+		 * when a *specific* action is dispatched. If you want a "catch all" effect,
+		 * you can use the `Node.EventTypes.UPDATE` event.  For example, if you dispatch
+		 * an action called `foo`, then any effects registered to `foo` will be called,
+		 * and any handlers on the `Node.EventTypes.UPDATE` event will be called, also.
+		 */
+		for(const [ a, e ] of Object.entries(effects)) {
+			this.addEffect(a, ...(Array.isArray(e) ? e : [ e ]));
+		}
+
+
+		/* Strictly convenience arguments, since these are usually sort of important events */
+		if(typeof $pre === "function") {
+			this.addEventListeners(Node.EventTypes.PRE, $pre);
+		}
+		if(typeof $init === "function") {
+			this.addEventListeners(Node.EventTypes.INIT, $init);
+		}
+		if(typeof $post === "function") {
+			this.addEventListeners(Node.EventTypes.POST, $post);
+		}
+
+		/* A convenience argument to immediately invoke the initialization events, with optional arguments */
+		if($run) {
+			this.init.call(this, ...(Array.isArray($run) ? $run : []));
+		}
+	}
+
+	init(...args) {
+		this.emit(Node.EventTypes.PRE, this, ...args);
+		this.emit(Node.EventTypes.INIT, this, ...args);
+		this.emit(Node.EventTypes.POST, this, ...args);
+
+		return this;
+	}
+
+	next(next = {}, txs = [], ...args) {
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
+		let state = { ...this.state, ...next };
+
+		for(const tx of Array.isArray(txs) ? txs : [ txs ]) {
+			if(typeof tx === "function") {
+				state = tx(state, ...args);
+			}
+		}
+
+		if(!this.config.allowTrivialUpdate &amp;&amp; deepEqual(state, previous)) {
+			return state;
+		}
+
+		this.state = { ...state };
+		this.emit(Node.EventTypes.UPDATE, state, previous, action);
+
+		return state;
+	}
+
+	dispatch(action, ...args) {
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
+		let state = this.state;
+
+		if(this.events.reducers[ action ]) {
+			state = this.events.reducers[ action ].call(this, state, ...args);
+		}
+		if(this.events.reducers.default) {
+			state = this.events.reducers.default.call(this, state, ...args);
+		}
+
+		if(!this.config.allowTrivialUpdate &amp;&amp; deepEqual(state, previous)) {
+			return state;
+		}
+
+		this.state = { ...state };
+		this.emit(Node.EventTypes.UPDATE, state, previous, action);
+
+		if(this.events.effects[ action ]) {
+			for(const effect of this.events.effects[ action ]) {
+				effect.call(this, state, ...args);
+			}
+		}
+
+		return state;
+	}
+
+	async dispatchAsync(action, ...args) {
+		let previous = this.config.allowShallowPrevious ? { ...this.state } : clone(this.state);
+		let state = this.state;
+
+		if(this.events.reducers[ action ]) {
+			state = await this.events.reducers[ action ].call(this, state, ...args);
+		}
+
+		if(!this.config.allowTrivialUpdate &amp;&amp; deepEqual(state, previous)) {
+			return state;
+		}
+
+		this.state = { ...state };
+		this.emit(Node.EventTypes.UPDATE, state, previous, this);
+
+		if(this.events.effects[ action ]) {
+			for(const effect of this.events.effects[ action ]) {
+				effect.call(this, state, ...args);
+			}
+		}
+
+		return state;
+	}
+
+	addReducer(action, reducer) {
+		this.events.reducers[ action ] = reducer;
+
+		return this;
+	}
+	addReducers(reducerObj = {}) {
+		for(const [ action, reducer ] of Object.entries(reducerObj)) {
+			this.addReducer(action, reducer);
+		}
+
+		return this;
+	}
+
+	addEffect(action, ...effects) {
+		if(!this.events.effects[ action ]) {
+			this.events.effects[ action ] = [];
+		}
+		this.events.effects[ action ].push(...effects);
+
+		return this;
+	}
+	addEffects(effectObj = {}) {
+		for(const [ action, effects ] of Object.entries(effectObj)) {
+			this.addEffect(action, ...(Array.isArray(effects) ? effects : [ effects ]));
+		}
+
+		return this;
+	}
+	removeEffect(action, ...effects) {
+		if(!this.events.effects[ action ]) {
+			return;
+		}
+		this.events.effects[ action ] = this.events.effects[ action ].filter(effect => !effects.includes(effect));
+
+		return this;
+	}
+
+	emit(event, ...args) {
+		if(!this.events[ event ]) {
+			return;
+		}
+
+		return this.events[ event ].map(listener => listener(...args));
+	}
+	async emitAsync(event, ...args) {
+		if(!this.events[ event ]) {
+			return;
+		}
+
+		return Promise.all(this.events[ event ].map(listener => listener(...args)));
+	}
+
+	addEventListeners(event, ...listeners) {
+		if(!this.events[ event ]) {
+			this.events[ event ] = [];
+		}
+
+		if(typeof event === "object") {
+			for(const [ e, l ] of Object.entries(event)) {
+				this.addEventListeners(e, ...l);
+			}
+		} else {
+			this.events[ event ].push(...listeners);
+		}
+
+		return this;
+	}
+	removeEventListeners(event, ...listeners) {
+		if(!this.events[ event ]) {
+			return;
+		}
+
+		if(typeof event === "object") {
+			for(const [ e, l ] of Object.entries(event)) {
+				this.removeEventListeners(e, ...l);
+			}
+		} else {
+			this.events[ event ] = this.events[ event ].filter(listener => !listeners.includes(listener));
+		}
+
+		if(this.events[ event ].length === 0) {
+			delete this.events[ event ];
+		}
+
+		return this;
+	}
+
+	static Create({ state = {}, events = {}, reducers = {}, effects = [], registry, id, tags = [], ...rest } = {}) {
+		return new Node({
+			state,
+			events,
+			reducers,
+			effects,
+			registry,
+			id,
+			tags,
+			...rest,
+		});
+	}
+	static CreateMany(stateObject = {}) {
+		const obj = {};
+		for(const [ key, state ] of Object.entries(stateObject)) {
+			if(typeof state === "function") {
+				obj[ key ] = Node.Create(state(key, obj));
+			} else {
+				obj[ key ] = Node.Create(state);
+			}
+		}
+
+		return obj;
+	}
+
+	static CreateSimple(state = {}) {
+		return new Node({
+			state,
+			reducers: {
+				default: Node.MergeReducer,	// `default` is a reserved-keyword fallback for the "switch reducer"
+			},
+
+			// STUB: Remove this
+			// effects: [ Node.LogEffect ],
+		});
+	}
+	static CreateManySimple(stateObject = {}) {
+		const obj = {};
+		for(const [ key, state ] of Object.entries(stateObject)) {
+			if(typeof state === "function") {
+				obj[ key ] = Node.CreateSimple(state(key, obj));
+			} else {
+				obj[ key ] = Node.CreateSimple(state);
+			}
+		}
+
+		return obj;
+	}
+};
+
+export default Node;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="DataTable.html">DataTable</a></li><li><a href="Network.html">Network</a></li><li><a href="Pipeline.html">Pipeline</a></li><li><a href="Tags.html">Tags</a></li></ul><h3>Global</h3><ul><li><a href="global.html#Envelope">Envelope</a></li><li><a href="global.html#FastPixelScaleCanvas">FastPixelScaleCanvas</a></li><li><a href="global.html#Message">Message</a></li><li><a href="global.html#PixelScaleCanvas">PixelScaleCanvas</a></li><li><a href="global.html#State">State</a></li><li><a href="global.html#safeStringify">safeStringify</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Tue Dec 12 2023 20:46:02 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
