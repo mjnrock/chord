@@ -80,7 +80,7 @@ export const Registry = {
 	},
 
 	register(registry, entry, ...aliases) {
-		let id = entry.$id ?? uuid();
+		let id = entry?.$id ?? uuid();
 
 		if(!id) {
 			return false;
@@ -262,7 +262,7 @@ export const Reader = {
 		}
 
 		if(resolve) {
-			return registry[ name ].value.map(id => registry[ id ].value);
+			return registry[ name ].value.map(id => registry[ id ]?.value);
 		} else {
 			return registry[ name ].value;
 		}

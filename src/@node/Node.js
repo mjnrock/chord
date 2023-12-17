@@ -85,6 +85,7 @@ export class Node extends IdentityClass {
 			...events,
 		};
 
+		this.registry = registry;
 		this.config = {
 			allowShallowPrevious: false,
 			allowTrivialUpdate: false,	// If the state is the same as the previous state, still emit the `update` event
@@ -120,6 +121,13 @@ export class Node extends IdentityClass {
 		}
 	}
 
+	lookup(id) {
+		if(this.registry && this.registry[ id ]) {
+			return this.registry[ id ];
+		}
+
+		return;
+	}
 	init(...args) {
 		this.emit(Node.EventTypes.PRE, this, ...args);
 		this.emit(Node.EventTypes.INIT, this, ...args);

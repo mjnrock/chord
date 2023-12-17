@@ -1,4 +1,4 @@
-import Node from "./Node";
+import Node from "../Node";
 
 /**
  * A Message is a simple wrapper for data that is intended to be sent over an

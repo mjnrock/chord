@@ -86,7 +86,7 @@ export const Identity = {
 
 		for(const [ key, value ] of Object.entries(target)) {
 			if(key.startsWith("$")) {
-				meta[ key ] = value;
+				meta[ key.slice(1) ] = value;
 			}
 		}
 

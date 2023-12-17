@@ -93,15 +93,6 @@ export class Tags extends Map {
 		return;
 	}
 
-	/**
-	 * Greeting component that displays a message.
-	 *
-	 * @param {Object} props
-	 * @param {string} props.name - The name of the person to greet.
-	 * 
-	 * @example
-	 * return <Greeting name="John" />
-	 */
 	add(...inputs) {
 		inputs.forEach(input => {
 			if(Array.isArray(input)) {
